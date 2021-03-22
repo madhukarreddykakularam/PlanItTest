@@ -1,0 +1,127 @@
+﻿'USEUNIT FW_Utils
+'USEUNIT FW_Harness
+'USEUNIT FW_Engine
+'USEUNIT FW_Reporting
+'USEUNIT FW_CompositeAppDriver
+
+'$Id: GenericInsuranceDriver.vbs 159 2011-11-18 15:27:56Z 501349 $
+' Generic Web Utilities
+' Contains methods such as:
+' Verify controls exist
+' Verify table contents (headers, column values etc.)
+' Verify values of controls
+' Click on objects
+' Popup handling etc.
+
+
+
+Function FactoryExcelComparatorDriver()
+	Dim ExcelComparatorDriver
+	Set oExcelComparatorDriver = new ExcelComparatorDriver
+	Set FactoryExcelComparatorDriver = oExcelComparatorDriver
+End Function
+
+
+Class ExcelComparatorDriver	
+  Public Function Perform(componentCode, input, output)                  
+    On Error Resume Next 
+    Err.Clear 
+    Dim rc                   
+    prevErrcount=Log.ErrCount             
+    rc = eval(componentCode & "(input, output)")
+    errCount=Log.ErrCount-prevErrcount
+    If Err.Number = 0 and errCount =0 Then 
+      oLogErr.debug(componentCode & " returned " & rc) 
+      Perform = rc 
+    Exit Function 
+    End If  
+    Result.Failed componentCode,componentCode+" component should excecute properly",componentCode+ " failed to execute properly"                           
+    oLogErr.HandleError("Error in executing " & componentCode & ":" & Err.Description)                 
+End Function
+  
+
+	Private Sub Class_Initialize()
+		Set oLogErr = oLOGUTILS.MakeLogErr(me)
+	End Sub
+	                                                                                                                                                                                                                                                                                                                                                                                                                                                                 
+	Private oLogErr
+  
+  
+  
+  Public Function ExcelComparator(input,output)
+
+    Result.Passed "Compare Excel Files", "Compare Excel Files", "Comparison of Baseline Test Data and Actual Excel Report is starting"
+      
+    Set Exl_Obj = CreateObject("Excel.Application")
+    Set WB_Obj_1 = Exl_Obj.Workbooks.Open("D:\TVROCS_AUTOMATION_Final\Data\BaseLineTestData\CGRegCompAMRLDDownBroadcastDate.xlsx")
+    Set WB_Obj_2 = Exl_Obj.Workbooks.Open("D:\TVROCS_AUTOMATION_Final\Log\CGRegCompAMRLDDownBroadcastDate.04.30.2020 122206AM.xlsx")
+    Result.Passed "Compare Excel Files", "Compare Excel Files", "Excel files are fetched from specified directory"
+    
+    Count1 = WB_Obj_1.Worksheets.Count
+    Count2 = WB_Obj_2.Worksheets.Count
+    
+    Result.Passed "Compare Excel Files", "Compare Excel Files", "Excel files are getting compared cell by cell"
+    Message = Null
+    count=0
+    If Count1 = Count2 Then
+
+        For i = 1 To Count1
+            
+            Flag = 0
+            
+            Set WS_Obj_1 = WB_Obj_1.Worksheets(i)
+            Set WS_Obj_2 = WB_Obj_2.Worksheets(i)
+            
+            For Each cell In WS_Obj_1.UsedRange
+    
+                temp1 = cell.Value
+                temp2 = WS_Obj_2.Range(cell.Address).Value
+                If cell.Value <> WS_Obj_2.Range(cell.Address).Value Then
+                    Value="Generated"
+                   cellValue=cell.Value
+                   If InStr(cellValue, Value) = 0 Then
+                    WS_Obj_1.Range(cell.Address).Interior.ColorIndex = 6
+                    WS_Obj_2.Range(cell.Address).Interior.ColorIndex = 6
+                    Flag = 1
+                    count =Flag
+                   End if
+                Else
+                    WS_Obj_1.Range(cell.Address).Interior.ColorIndex = 0
+                    WS_Obj_2.Range(cell.Address).Interior.ColorIndex = 0
+                End If
+            
+            Next
+            
+            If Flag = 1 Then
+                Message = Message & "There is data mismatch in sheet " & i & " "
+            End If
+             
+        Next
+    
+      Else
+        Message = "There is mismatch in number of sheets between Baseline Test Data and Actual Excel Report"
+        Flag = 1
+        count =Flag
+    End If
+    
+    If count = 0 Then
+        Result.Passed "Compare Excel Files", "Comparison Result of Baseline Test Data and Actual Excel Report", "There is no data mismatch in Baseline Test Data and Actual Excel Report"
+    Else
+        Result.Failed "Compare Excel Files", "Comparison Result of BaseLine test data and Actual Excel Report", Message
+    End If
+    
+    WB_Obj_1.Save
+    WB_Obj_2.Save
+    Result.Passed "Compare Excel Files", "Compare Excel Files", "Updated Baseline Test Data and Actual Excel Report are saved"
+        
+    WB_Obj_1.Close    
+    WB_Obj_2.Close
+    Result.Passed "Compare Excel Files", "Compare Excel Files", "Updated Baseline Test Data and Actual Excel Report are closed"
+    
+    Exl_Obj.Application.Quit
+    Set Exl_Obj = Nothing
+    End Function
+  
+  
+End Class
+
